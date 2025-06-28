@@ -14,20 +14,18 @@ return new class extends Migration
         Schema::create('orders', function (Blueprint $table) {
             $table->id();
             $table->string('uniq_id');
-            $table->unsignedBigInteger('customer_id')->nullable(); // Must be nullable for onDelete('set null')
+            $table->unsignedBigInteger('customer_id')->nullable();
             $table->foreign('customer_id')->references('id')->on('customers')->onDelete('set null');
-            $table->string('type')->nullable();
-            $table->integer('items')->default(1);
-            $table->string('status')->default('pending');
-            $table->string('shipping_method')->nullable();
-            $table->decimal('shipping_price', 10, 2)->default(0);
-            $table->longText('order_summary')->nullable(); // assuming it's a structured summary
-            $table->string('payment_method')->nullable();
-            $table->string('payment_status')->default('unpaid');
-            $table->unsignedBigInteger('promocode_id')->nullable(); // Must be nullable for onDelete('set null')
-            $table->foreign('promocode_id')->references('id')->on('promo_codes')->onDelete('set null');
-            $table->string('promocode_name')->nullable();
-            $table->decimal('total');
+            $table->text('order_summary')->nullable();
+            $table->string('payment_status')->default('paid'); // 'due' or 'paid'
+            $table->decimal('total_purchase_price', 10, 2)->default(0); //
+            $table->decimal('total', 10, 2)->default(0);
+            $table->decimal('paid_amount', 10, 2)->default(0);
+            $table->decimal('remaining_amount', 10, 2)->default(0);
+            $table->decimal('discount', 10, 2)->default(0);
+            $table->decimal('vat_percentage', 10, 2)->default(5);
+            $table->decimal('eventual_total', 10, 2)->default(5);
+            $table->decimal('profit', 10, 2)->default(0);
             $table->timestamps();
         });
     }

@@ -36,20 +36,22 @@ class OrderController extends Controller
 
     protected array $textFields = [
         'uniq_id',
-        'type',
-        'status',
-        'shipping_method',
-        'payment_method',
+        'order_summary',
         'payment_status',
-        'promocode_name',
+
     ];
 
     protected array $numericFields = [
-        'items',
-        'promocode_id',
+        'paid_amount',
+        'remaining_amount',
+        'discount',
+        'vat_percentage',
         'customer_id',
-        'shipping_price',
         'total',
+        'eventual_total',
+        'profit',
+        'profit',
+     
     ];
 
     protected array $customerInfo = [
@@ -77,19 +79,17 @@ class OrderController extends Controller
             'state'           => 'required|string|max:100',
             'postal_code'     => 'required|string|max:20',
             'country'         => 'required|string|max:100',
-            'type'            => 'nullable|string|max:100',
-            'items'           => 'nullable|integer|min:1',
-            'status'          => 'required|string|in:pending,processing,completed,cancelled',
-            'shipping_method' => 'nullable|string|max:100',
-            'shipping_price'  => 'nullable|numeric|min:0',
             'order_summary'   => 'nullable|string', // or array/json if casted
-            'payment_method'  => 'nullable|string|max:100',
-            'payment_status'  => 'required|string|in:unpaid,paid',
+           
             'products' => 'nullable|array',
             'products.*.product_id' => 'required|exists:products,id',
             'products.*.quantity' => 'nullable|integer|min:1|max:100',
-            'promocode_name'  => 'nullable|string|max:100',
             'total'           => 'required|numeric|min:0',
+            'paid_amount'     => 'required|numeric|min:0',
+            'remaining_amount' => 'required|numeric|min:0',
+            'discount'        => 'nullable|numeric|min:0',
+            'vat_percentage'  => 'nullable|numeric|min:0|max:100',
+            'profit'          => 'nullable|numeric|min:0',
 
         ]);
     }
@@ -117,7 +117,7 @@ class OrderController extends Controller
             $status = $validated['status'] ?? null;
 
             // Initialize query with relationships
-            $query = Order::with(['promocode:id,name', 'customer'])->orderBy('updated_at', 'desc');
+            $query = Order::with(['customer'])->orderBy('updated_at', 'desc');
 
             // Check if user is authenticated and their role
             $user = null;
@@ -142,7 +142,7 @@ class OrderController extends Controller
                     $q->where('uniq_id', 'like', $search . '%')
                         ->orWhereHas('customer', function ($customerQuery) use ($search) {
                             $customerQuery->where('email', 'like', $search . '%')
-                                         ->orWhere('phone', 'like', $search . '%');
+                                ->orWhere('phone', 'like', $search . '%');
                         });
                 });
             }
@@ -227,6 +227,7 @@ class OrderController extends Controller
         $processingOrders = Order::where('status', 'pending')->count();
         $pendingPayments =  Order::where('payment_status', 'unpaid')->count();
         $revenue = Order::sum('total');
+      
         $averageOrderValue = $revenue / $totalOrders;
 
 
@@ -235,6 +236,7 @@ class OrderController extends Controller
             'processing' => $processingOrders,
             'pendingPayments' => $pendingPayments,
             'revenue' => $revenue,
+       
             'averageOrderValue' => $averageOrderValue,
         ], Response::HTTP_OK);
     }
@@ -287,9 +289,15 @@ class OrderController extends Controller
                 ]
             );
 
+            if($request->remaining_amount == 0){
+                $order->payment_status = 'paid';
+            }else{
+                $order->payment_status = 'due';
+            }
+          
+
             // return $promocodeDiscount->type;
 
-            
             // return $order->total;
             $order->save();
 
@@ -438,8 +446,7 @@ class OrderController extends Controller
         try {
             $data = Order::with([
                 'products',
-                'promocode:id,name' ,
-                'products.media',// Only id and name from promocode
+                'products.media', // Only id and name from promocode
                 'customer'
             ])->where('uniq_id', $uniq_id)->first();
 
@@ -508,6 +515,7 @@ class OrderController extends Controller
         $customerCount = Customer::count(); //ok
         $revenue = Order::sum('total'); //ok
         $averageOrderValue = $revenue / $totalOrders; // opk 
+          $total_due = Order::where('payment_status', 'due')->sum('remaining_amount');
 
 
         return response()->json([
@@ -520,6 +528,7 @@ class OrderController extends Controller
             'totalOrders' => $totalOrders,
             'customerCount' => $customerCount,
             'revenue' => $revenue,
+            'total_due' => $total_due,
             'averageOrderValue' => $averageOrderValue,
         ]);
     }
@@ -584,9 +593,9 @@ class OrderController extends Controller
 
         $order->save();
 
-       return response()->json([
-    'message' => 'Status updated successfully'
-]);
+        return response()->json([
+            'message' => 'Status updated successfully'
+        ]);
     }
 
     public function history(Request $request)
@@ -619,8 +628,8 @@ class OrderController extends Controller
             $status = $validated['status'] ?? null;
 
             $query = Order::with(['promocode:id,name', 'customer'])
-                    ->where('customer_id', $customer->id)
-                    ->orderBy('updated_at', 'desc');
+                ->where('customer_id', $customer->id)
+                ->orderBy('updated_at', 'desc');
 
 
             if ($search) {

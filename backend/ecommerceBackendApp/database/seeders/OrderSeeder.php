@@ -30,7 +30,7 @@ class OrderSeeder extends Seeder
         $start = Carbon::now()->subMonths(6);
         $end = Carbon::now();
 
-        for ($i = 1; $i <= 1000; $i++) { 
+        for ($i = 1; $i <= 1000; $i++) {
             // Generate random date for each order
             $randomDate = Carbon::createFromTimestamp(rand($start->timestamp, $end->timestamp));
 
@@ -46,24 +46,35 @@ class OrderSeeder extends Seeder
                 'state'           => "State {$i}",
                 'postal_code'     => "120{$i}",
                 'country'         => "Bangladesh",
-                  'created_at'      => $randomDate,
+                'created_at'      => $randomDate,
                 'updated_at'      => $randomDate,
             ]);
 
+            $totalPurchasePrice = rand(100, 200);
+            $profit = rand(20, 80);
+            $total = $totalPurchasePrice + $profit;
+            $discount = rand(0, 30);
+            $vatPercentage = 5;
+            $vatAmount = ($total * $vatPercentage) / 100;
+            $eventualTotal = $total + $vatAmount - $discount;
+            $paidAmount = rand(0, (int)$eventualTotal);
+            $remainingAmount = $eventualTotal - $paidAmount;
+
             $order = Order::create([
-                'uniq_id'         => HelperMethods::generateUniqueId(),
-                'customer_id'     => $customer->id,
-                'type'            => 'online',
-                'status'          => 'pending',
-                'shipping_method' => 'standard',
-                'items'           => rand(1, 5),
-                'shipping_price'  => 50.00,
-                'order_summary'   => 'Subtotal: $100.00 | Tax: $15.00 | Total: $165.00',
-                'payment_method'  => 'cash_on_delivery',
-                'payment_status'  => 'unpaid',
-                'total'           => 165.00,
-                'created_at'      => $randomDate,
-                'updated_at'      => $randomDate,
+                'uniq_id'              => HelperMethods::generateUniqueId(),
+                'customer_id'          => $customer->id,
+                'order_summary'        => "Subtotal: \$$total | VAT: \$$vatAmount | Discount: \$$discount | Total: \$$eventualTotal",
+                'payment_status'       => $paidAmount >= $eventualTotal ? 'paid' : 'due',
+                'total_purchase_price' => $totalPurchasePrice,
+                'total'                => $total,
+                'paid_amount'          => $paidAmount,
+                'remaining_amount'     => $remainingAmount,
+                'discount'             => $discount,
+                'vat_percentage'       => $vatPercentage,
+                'eventual_total'       => $eventualTotal,
+                'profit'               => $profit,
+                'created_at'           => $randomDate,
+                'updated_at'           => $randomDate,
             ]);
 
             // Prepare sync data: product_id => ['quantity' => X]

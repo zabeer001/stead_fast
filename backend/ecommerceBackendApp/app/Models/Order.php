@@ -11,19 +11,19 @@ class Order extends Model
     protected $fillable = [
         'uniq_id',
         'customer_id',
-        'product_id',
-        'description',
-        'type',
-        'items',
-        'status',
-        'shipping_method',
-        'shipping_price',
         'order_summary',
-        'payment_method',
         'payment_status',
-        'promocode_id',
-        'promocode_name',
+        'total_purchase_price',
         'total',
+        'paid_amount',
+        'remaining_amount',
+        'discount',
+        'vat_percentage',
+        'eventual_total',
+        'profit',
+        // 'due_amount',
+        'created_at',
+        'updated_at',
     ];
 
 
@@ -34,10 +34,6 @@ class Order extends Model
             ->withTimestamps();
     }
 
-    public function promocode()
-    {
-        return $this->belongsTo(PromoCode::class, 'promocode_id', 'id');
-    }
 
     public function customer()
     {

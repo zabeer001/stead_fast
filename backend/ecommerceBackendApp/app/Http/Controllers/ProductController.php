@@ -24,13 +24,12 @@ class ProductController extends Controller
         'name',
         'description',
         'stock_quantity',
-        'arrival_status'
     ];
 
     protected $imageFields = ['image'];
 
 
-    protected $numericFields = ['price', 'category_id', 'cost_price', 'stock_quantity'];
+    protected $numericFields = ['price', 'cost_price', 'stock_quantity','purchase_price','category_id'];
 
     /**
      * Validate the request data for Product creation or update.
@@ -49,9 +48,9 @@ class ProductController extends Controller
             'images' => 'nullable|array',
             'images.*' => 'nullable|file|max:10240',
             'price' => 'required|integer|min:0',
-            'cost_price' => 'required|integer|min:0',
             'stock_quantity' => 'nullable|integer',
-            'category_id' => 'nullable|exists:categories,id',
+            'purchase_price' => 'nullable|integer',
+            'category_id' => 'nullable|integer|exists:categories,id',
         ]);
     }
 
